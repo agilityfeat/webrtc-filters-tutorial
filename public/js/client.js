@@ -11,20 +11,34 @@ var roomNumber;
 var localStream;
 var remoteStream;
 var rtcPeerConnection;
-var iceServers = {
+var isCaller;
+
+// constants
+const iceServers = {
     'iceServers': [
-        { 'url': 'stun:stun.services.mozilla.com' },
+        { 'url': 'stun:mtcnnRstun.services.mozilla.com' },
         { 'url': 'stun:stun.l.google.com:19302' }
     ]
 }
-var streamConstraints = { audio: true, video: true };
-var isCaller;
+const streamConstraints = { audio: true, video: true };
+const mtcnnForwardParams = {
+    // limiting the search space to larger faces for webcam detection
+    minFaceSize: 200
+}
+
+//positions for sunglasess
+var results = []
+
+//utility functions
+async function getFace(localVideo, options){
+    results = await faceapi.mtcnn(localVideo, options)
+}
 
 // Let's do this
 var socket = io();
 
 btnGoRoom.onclick = function () {
-    if (inputRoomNumber.value === '') {
+    if (inputRoomNumber.value === '') {step
         alert("Please type a room number")
     } else {
         roomNumber = inputRoomNumber.value;
@@ -38,23 +52,19 @@ btnGoRoom.onclick = function () {
 socket.on('created', async function (room) {
     await faceapi.loadMtcnnModel('/weights')
     await faceapi.loadFaceRecognitionModel('/weights')
-    navigator.mediaDevices.getUserMedia(streamConstraints).then(async function (stream) {
+    navigator.mediaDevices.getUserMedia(streamConstraints).then(function (stream) {
         let localVideo = document.createElement("video")
         localVideo.srcObject = stream;
         localVideo.autoplay = true
         localVideo.addEventListener('playing', () => {
             let ctx = canvas.getContext("2d");
             let image = new Image()
-            image.src = "/sunglasses-style.png"
-            const mtcnnForwardParams = {
-                // limiting the search space to larger faces for webcam detection
-                minFaceSize: 200
-            }
-            async function step() {
-
+            image.src = "img/sunglasses.png"
+            
+            function step() {
+                getFace(localVideo, mtcnnForwardParams)
                 ctx.drawImage(localVideo, 0, 0)
-                const mtcnnResults = await faceapi.mtcnn(localVideo, mtcnnForwardParams)
-                mtcnnResults.map(result => {
+                results.map(result => {
                     ctx.drawImage(
                         image,
                         result.faceDetection.box.x,
@@ -63,12 +73,10 @@ socket.on('created', async function (room) {
                         result.faceDetection.box.width * (image.height / image.width)
                     )
                 })
-                faceapi.drawDetection('localCanvas', mtcnnResults.map(res => res.faceDetection), { withScore: false })
-                faceapi.drawLandmarks('localCanvas', mtcnnResults.map(res => res.faceLandmarks), { lineWidth: 4, color: 'red' })
-                setTimeout(step)
+                requestAnimationFrame(step)
             }
 
-            step()
+            requestAnimationFrame(step)
         })
 
         localStream = canvas.captureStream(30)
@@ -78,25 +86,33 @@ socket.on('created', async function (room) {
     });
 });
 
-socket.on('joined', function (room) {
+socket.on('joined', async function (room) {
+    await faceapi.loadMtcnnModel('/weights')
+    await faceapi.loadFaceRecognitionModel('/weights')
     navigator.mediaDevices.getUserMedia(streamConstraints).then(function (stream) {
         let localVideo = document.createElement("video")
         localVideo.srcObject = stream;
         localVideo.autoplay = true
         localVideo.addEventListener('playing', () => {
             let ctx = canvas.getContext("2d");
+            let image = new Image()
+            image.src = "img/sunglasses-style.png"
+
             function step() {
+                getFace(localVideo, mtcnnForwardParams)
                 ctx.drawImage(localVideo, 0, 0)
-
-                ctx.beginPath();
-                ctx.moveTo(75, 50);
-                ctx.lineTo(100, 75);
-                ctx.lineTo(100, 25);
-                ctx.fill();
-
+                results.map(result => {
+                    ctx.drawImage(
+                        image,
+                        result.faceDetection.box.x,
+                        result.faceDetection.box.y + 30,
+                        result.faceDetection.box.width,
+                        result.faceDetection.box.width * (image.height / image.width)
+                    )
+                })
                 requestAnimationFrame(step)
             }
-
+            
             requestAnimationFrame(step)
         })
 
