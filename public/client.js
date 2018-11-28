@@ -35,28 +35,42 @@ btnGoRoom.onclick = function () {
 };
 
 // message handlers
-socket.on('created', function (room) {
-    navigator.mediaDevices.getUserMedia(streamConstraints).then(function (stream) {
+socket.on('created', async function (room) {
+    await faceapi.loadMtcnnModel('/weights')
+    await faceapi.loadFaceRecognitionModel('/weights')
+    navigator.mediaDevices.getUserMedia(streamConstraints).then(async function (stream) {
         let localVideo = document.createElement("video")
         localVideo.srcObject = stream;
         localVideo.autoplay = true
         localVideo.addEventListener('playing', () => {
             let ctx = canvas.getContext("2d");
-            function step() {
-                ctx.drawImage(localVideo, 0, 0)
+            let image = new Image()
+            image.src = "/sunglasses-style.png"
+            const mtcnnForwardParams = {
+                // limiting the search space to larger faces for webcam detection
+                minFaceSize: 200
+            }
+            async function step() {
 
-                ctx.beginPath();
-                ctx.moveTo(75, 50);
-                ctx.lineTo(100, 75);
-                ctx.lineTo(100, 25);
-                ctx.fill();
-                
-                requestAnimationFrame(step)
+                ctx.drawImage(localVideo, 0, 0)
+                const mtcnnResults = await faceapi.mtcnn(localVideo, mtcnnForwardParams)
+                mtcnnResults.map(result => {
+                    ctx.drawImage(
+                        image,
+                        result.faceDetection.box.x,
+                        result.faceDetection.box.y + 30,
+                        result.faceDetection.box.width,
+                        result.faceDetection.box.width * (image.height / image.width)
+                    )
+                })
+                faceapi.drawDetection('localCanvas', mtcnnResults.map(res => res.faceDetection), { withScore: false })
+                faceapi.drawLandmarks('localCanvas', mtcnnResults.map(res => res.faceLandmarks), { lineWidth: 4, color: 'red' })
+                setTimeout(step)
             }
 
-            requestAnimationFrame(step)
+            step()
         })
-        
+
         localStream = canvas.captureStream(30)
         isCaller = true;
     }).catch(function (err) {
@@ -79,7 +93,7 @@ socket.on('joined', function (room) {
                 ctx.lineTo(100, 75);
                 ctx.lineTo(100, 25);
                 ctx.fill();
-                
+
                 requestAnimationFrame(step)
             }
 
