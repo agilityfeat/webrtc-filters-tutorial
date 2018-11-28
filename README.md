@@ -1,15 +1,21 @@
-# WebRTC Video Conference Tutorial
+# WebRTC Filters Tutorial
 
-This tutorial is divided in three versions:
+This tutorial shows how to apply filter effects to WebRTC video streams using canvas.
 
-* Plain WebRTC (One to One)
-* WebRTC using Media Server (Many to Many)
-* WebRTC using CPaaS (Many to Many)
+## Requirements
 
-Each version lives on its own branch so you can checkout to each one to review them.
+* Node & NPM. (Node 8.12 and NPM 6.4.1 were tested )
+* Git
 
-    git checkout webrtc     // for one to one webrtc tutorial
-    git checkout kurento    // for webrtc using media server
-    git checkout tokbox     // for webrtc using CPaaS
+## Instructions
 
-As you can see we're using [Kurento](http://www.kurento.org/) as media server and [Tokbox](https://tokbox.com/) as CPaaS service.
+```
+[Tested in Chrome 70]
+```
+
+1. Clone the repo
+2. Install dependencies with `npm install`
+3. Start the express server `node server.js`
+4. Open the application in two different browser windows: `http://localhost:3000`
+5. In both of the windows enter the same "Room Number" and click "Go"
+6. Enjoy!

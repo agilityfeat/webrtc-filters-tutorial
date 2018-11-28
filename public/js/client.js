@@ -67,7 +67,7 @@ socket.on('created', async function (room) {
                 results.map(result => {
                     ctx.drawImage(
                         image,
-                        result.faceDetection.box.x,
+                        result.faceDetection.box.x + 15,
                         result.faceDetection.box.y + 30,
                         result.faceDetection.box.width,
                         result.faceDetection.box.width * (image.height / image.width)
